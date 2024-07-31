@@ -1,0 +1,4 @@
+pydub
+pypi-json
+openai-whisper
+flask
