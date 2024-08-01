@@ -1,7 +1,7 @@
 import json
 from pydub import AudioSegment
 import whisper
-from flask import Flask,request
+from flask import Flask,request,jsonify
 import numpy as np
 import io
 from flask_cors import CORS
@@ -61,7 +61,7 @@ def predict():
         print(f"Phishing sentences: {phishing_count}")
         print(f"Phishing percentage: {phishing_percentage:.2f}%")
         
-    return [f"Total sentences: {total_sentences}",f"Phishing sentences: {phishing_count}",f"Phishing percentage: {phishing_percentage:.2f}%"]
+    return jsonify({"Total sentences":total_sentences,"Phishing sentences": phishing_count,"Phishing percentage": phishing_percentage})
 if __name__ == '__main__':
     app.run(debug=True)
 
