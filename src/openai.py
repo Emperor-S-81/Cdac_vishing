@@ -4,8 +4,11 @@ import whisper
 from flask import Flask,request
 import numpy as np
 import io
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app)
 
 def convert_mp3_to_wav(src):
     """Convert MP3 file to WAV format."""
