@@ -3,3 +3,4 @@ pypi-json
 openai-whisper
 flask
 flask-cors
+gunicorn
