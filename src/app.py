@@ -8,13 +8,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-def convert_mp3_to_wav(src):
-    """Convert MP3 file to WAV format."""
-    sound = AudioSegment.from_mp3(src)
-    sound.export("temp_audio.wav", format="wav")
+def convert_wav_to_text(src):
+    """Convert WAV file to text using Whisper."""
     model = whisper.load_model("base")
-    result = model.transcribe("temp_audio.wav")
-    os.remove("temp_audio.wav")  # Clean up the temporary file
+    result = model.transcribe(src)
     return result['text']
 
 def load_phishing_words():
@@ -46,11 +43,11 @@ def predict():
     audio_file = request.files['audio']
     
     # Save the uploaded file to a temporary location
-    audio_path = "temp_upload.mp3"
+    audio_path = "temp_upload.wav"
     audio_file.save(audio_path)
     
     try:
-        transcript_text = convert_mp3_to_wav(audio_path)
+        transcript_text = convert_wav_to_text(audio_path)
         os.remove(audio_path)  # Clean up the temporary file
 
         if transcript_text:
