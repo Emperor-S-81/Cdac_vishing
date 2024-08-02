@@ -1,11 +1,9 @@
 import json
 from pydub import AudioSegment
 import whisper
-from flask import Flask,request,jsonify
-import numpy as np
-import io
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -13,11 +11,11 @@ CORS(app)
 def convert_mp3_to_wav(src):
     """Convert MP3 file to WAV format."""
     sound = AudioSegment.from_mp3(src)
-    sound.export("test.wav",format="wav")
+    sound.export("temp_audio.wav", format="wav")
     model = whisper.load_model("base")
-    result = model.transcribe("test.wav")
+    result = model.transcribe("temp_audio.wav")
+    os.remove("temp_audio.wav")  # Clean up the temporary file
     return result['text']
-
 
 def load_phishing_words():
     """Load phishing words from a JSON file."""
@@ -40,46 +38,36 @@ def check_for_phishing_words(text, phishing_words):
     phishing_percentage = (phishing_count / total_sentences) * 100 if total_sentences > 0 else 0
     return phishing_count, total_sentences, phishing_percentage
 
-# the main code starts from here 
-
-# File paths
-@app.route('/predict',methods=['POST'])
+@app.route('/predict', methods=['POST'])
 def predict():
     if 'audio' not in request.files:
-        return 'No file provided', 400
+        return jsonify({"error": "No file provided"}), 400
 
     audio_file = request.files['audio']
     
-    transcript_text = convert_mp3_to_wav(audio_file)
+    # Save the uploaded file to a temporary location
+    audio_path = "temp_upload.mp3"
+    audio_file.save(audio_path)
+    
+    try:
+        transcript_text = convert_mp3_to_wav(audio_path)
+        os.remove(audio_path)  # Clean up the temporary file
 
-    if transcript_text:
-        # Load phishing words
-        phishing_words = load_phishing_words()
-        phishing_count, total_sentences, phishing_percentage = check_for_phishing_words(transcript_text, phishing_words)
+        if transcript_text:
+            # Load phishing words
+            phishing_words = load_phishing_words()
+            phishing_count, total_sentences, phishing_percentage = check_for_phishing_words(transcript_text, phishing_words)
 
-        print(f"Total sentences: {total_sentences}")
-        print(f"Phishing sentences: {phishing_count}")
-        print(f"Phishing percentage: {phishing_percentage:.2f}%")
-        
-    return jsonify({"Total sentences":total_sentences,"Phishing sentences": phishing_count,"Phishing percentage": phishing_percentage})
+            return jsonify({
+                "Total sentences": total_sentences,
+                "Phishing sentences": phishing_count,
+                "Phishing percentage": phishing_percentage
+            })
+        else:
+            return jsonify({"error": "Transcription failed"}), 500
+    except Exception as e:
+        os.remove(audio_path)  # Clean up the temporary file in case of error
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-# src = "WhatsApp Audio 2024-05-22 at 12.24.41 PM.mp3"
-# dst = "test.wav"
-# output_text_path = "transcript.txt"
-
-# # Convert MP3 to WAV
-# convert_mp3_to_wav(src, dst)
-
-# # Transcribe the WAV file
-# transcript_text = speech_to_text(dst, output_text_path)
-
-# if transcript_text:
-#     # Load phishing words
-#     phishing_words = load_phishing_words()
-#     phishing_count, total_sentences, phishing_percentage = check_for_phishing_words(transcript_text, phishing_words)
-
-#     print(f"Total sentences: {total_sentences}")
-#     print(f"Phishing sentences: {phishing_count}")
-#     print(f"Phishing percentage: {phishing_percentage:.2f}%")
